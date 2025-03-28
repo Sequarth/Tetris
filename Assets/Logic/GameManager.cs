@@ -1,0 +1,211 @@
+using System;
+using UnityEngine;
+using Random = UnityEngine.Random;
+
+namespace Tetris.Core
+{
+    public class GameManager : MonoBehaviour
+    {
+        private BrickRotation _brickRotations;
+        
+        private GameObject _player1BrickGo;
+        private Rigidbody _player1BrickRb;
+        private float _player1BrickMovement;
+        private int _player1GameOver = 0;
+        
+        private GameObject _player2BrickGo;
+        private Rigidbody _player2BrickRb;
+        private float _player2BrickMovement;
+        private int _player2GameOver = 0;
+
+        private const float BrickMovementSpeed = 8.0f;
+        private const float BrickRotationTime = 0.1f;
+        private const float BrickMovementSpeedCutOff = -0.1f;
+
+        private void Awake()
+        {
+            _brickRotations = GetComponent<BrickRotation>();
+        }
+
+        private void OnEnable()
+        {
+            EventManager.gameStarted += OnPlayer1BrickSpawned;
+            EventManager.gameStarted += OnPlayer2BrickSpawned;
+            EventManager.player1EndTurn += OnPlayer1BrickSpawned;
+            EventManager.player2EndTurn += OnPlayer2BrickSpawned;
+
+            EventManager.player1BrickInstantiated += GetPlayer1BrickRigidbody;
+            EventManager.player2BrickInstantiated += GetPlayer2BrickRigidbody;
+            
+            EventManager.player1BrickMoved += Player1BrickSetMovementDirection;
+            EventManager.player1BrickRotated += Player1BrickSetRotationDirection;
+            EventManager.player1BrickPlaced += PlacePlayer1Brick;
+            EventManager.player2BrickMoved += Player2BrickSetMovementDirection;
+            EventManager.player2BrickRotated += Player2BrickSetRotationDirection;
+            EventManager.player2BrickPlaced += PlacePlayer2Brick;
+        }
+
+        private void OnDisable()
+        {
+            EventManager.gameStarted -= OnPlayer1BrickSpawned;
+            EventManager.gameStarted -= OnPlayer2BrickSpawned;
+            EventManager.player1EndTurn -= OnPlayer1BrickSpawned;
+            EventManager.player2EndTurn -= OnPlayer2BrickSpawned;
+            
+            EventManager.player1BrickInstantiated -= GetPlayer1BrickRigidbody;
+            EventManager.player2BrickInstantiated -= GetPlayer2BrickRigidbody;
+            
+            EventManager.player1BrickMoved -= Player1BrickSetMovementDirection;
+            EventManager.player1BrickRotated -= Player1BrickSetRotationDirection;
+            EventManager.player1BrickPlaced -= PlacePlayer1Brick;
+            EventManager.player2BrickMoved -= Player2BrickSetMovementDirection;
+            EventManager.player2BrickRotated -= Player2BrickSetRotationDirection;
+            EventManager.player2BrickPlaced -= PlacePlayer2Brick;
+        }
+
+        private void Update()
+        {
+            if (_player1GameOver == 1)
+            {
+                EventManager.player1EndTurn -= OnPlayer1BrickSpawned;
+                _player1GameOver = 2;
+            }
+
+            if (_player2GameOver == 1)
+            {
+                EventManager.player2EndTurn -= OnPlayer2BrickSpawned;
+                _player2GameOver = 2;
+            }
+        }
+
+        private void FixedUpdate()
+        {
+            if (_player1BrickRb)
+            {
+                _player1BrickRb.linearVelocity = new Vector3(_player1BrickMovement * BrickMovementSpeed,
+                    _player1BrickRb.linearVelocity.y, 0);
+            
+                if (_brickRotations.player1Brick.WhetherToRotateBrick)
+                {
+                    _player1BrickRb.rotation = _brickRotations.player1Brick.GetRotationFixedUpdate(Time.fixedDeltaTime/BrickRotationTime);
+                }
+                
+                if (_player1BrickRb.linearVelocity.y >= BrickMovementSpeedCutOff && !_brickRotations.player1Brick.WhetherToRotateBrick)
+                {
+                    _player1GameOver = SetBlocksPositions(_player1BrickGo);
+                    OnPlayer1BrickStopped();
+                }
+            }
+
+            if (_player2BrickRb)
+            {
+                _player2BrickRb.linearVelocity = new Vector3(_player2BrickMovement * BrickMovementSpeed,
+                    _player2BrickRb.linearVelocity.y, 0);
+            
+                if (_brickRotations.player2Brick.WhetherToRotateBrick)
+                {
+                    _player2BrickRb.rotation = _brickRotations.player2Brick.GetRotationFixedUpdate(Time.fixedDeltaTime/BrickRotationTime);
+                }
+                
+                if (_player2BrickRb.linearVelocity.y >= BrickMovementSpeedCutOff)
+                {
+                    _player2GameOver = SetBlocksPositions(_player2BrickGo);
+                    OnPlayer2BrickStopped();
+                }
+            }
+        }
+        
+        private void OnPlayer1BrickSpawned()
+        {
+            _brickRotations.player1Brick.ResetRotationAngles();
+            var randomBrick = Random.Range(0, 7);
+            EventManager.player1BrickSpawned?.Invoke(randomBrick);
+        }
+        
+        private void OnPlayer2BrickSpawned()
+        {
+            _brickRotations.player2Brick.ResetRotationAngles();
+            var randomBrick = Random.Range(0, 7);
+            EventManager.player2BrickSpawned?.Invoke(randomBrick);
+        }
+
+        private static void OnPlayer1BrickStopped()
+        {
+            EventManager.player1BrickAttached?.Invoke();
+            EventManager.player1BrickStopped?.Invoke();
+            EventManager.player1BricksCleared?.Invoke();
+        }
+
+        private static void OnPlayer2BrickStopped()
+        {
+            EventManager.player2BrickAttached?.Invoke();
+            EventManager.player2BrickStopped?.Invoke();
+            EventManager.player2BricksCleared?.Invoke();
+        }
+
+        private int SetBlocksPositions(GameObject brick)
+        {
+            var gameEnded = 0;
+            foreach (var block in brick.GetComponentsInChildren<Transform>())
+            {
+                var remainderX = block.position.x % 2;
+                var remainderY = block.position.y % 2;
+                var offsetX = remainderX % 2 <= 1 ? 0 : 2;
+                var offsetY = remainderY % 2 <= 1 ? 0 : 2;
+                block.position = new Vector3(block.position.x - remainderX + offsetX, block.position.y - remainderY + offsetY);
+                if (block.position.y >= 39) gameEnded = 1;
+            }
+            return gameEnded;
+        }
+
+        private void GetPlayer1BrickRigidbody(GameObject brick)
+        {
+            _player1BrickGo = brick;
+            _player1BrickRb = brick.GetComponent<Rigidbody>();
+        }
+
+        private void GetPlayer2BrickRigidbody(GameObject brick)
+        {
+            _player2BrickGo = brick;
+            _player2BrickRb = brick.GetComponent<Rigidbody>();
+        }
+
+        private void Player1BrickSetMovementDirection(float movementDirection)
+        {
+            _player1BrickMovement = movementDirection;
+        }
+
+        private void Player1BrickSetRotationDirection(float rotationDirection)
+        {
+            if (rotationDirection == 0f) return;
+            _brickRotations.player1Brick.SetCurrentBrickRotation(_player1BrickRb.transform);
+            _brickRotations.player1Brick.AddAngles(rotationDirection);
+            _brickRotations.player1Brick.SetTargetBrickRotation(transform);
+            _brickRotations.player1Brick.ResetRotationTime();
+        }
+
+        private static void PlacePlayer1Brick()
+        {
+            // Brick placing implementation
+        }
+
+        private void Player2BrickSetMovementDirection(float movementDirection)
+        {
+            _player2BrickMovement = movementDirection;
+        }
+
+        private void Player2BrickSetRotationDirection(float rotationDirection)
+        {
+            if (rotationDirection == 0f) return;
+            _brickRotations.player2Brick.SetCurrentBrickRotation(_player2BrickRb.transform);
+            _brickRotations.player2Brick.AddAngles(rotationDirection);
+            _brickRotations.player2Brick.SetTargetBrickRotation(transform);
+            _brickRotations.player2Brick.ResetRotationTime();
+        }
+
+        private static void PlacePlayer2Brick()
+        {
+            // Brick placing implementation
+        }
+    }
+}

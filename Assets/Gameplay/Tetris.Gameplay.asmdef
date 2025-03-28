@@ -1,0 +1,18 @@
+{
+    "name": "Tetris.Gameplay",
+    "rootNamespace": "Tetris.Gameplay",
+    "references": [
+        "GUID:75469ad4d38634e559750d17036d5f7c",
+        "GUID:0a32d0aba26a8c54cbc0b0178d02cf53",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
