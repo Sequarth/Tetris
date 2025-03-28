@@ -4,11 +4,14 @@ using UnityEngine;
 
 namespace Tetris.Gameplay.Board
 {
+    /// <summary>
+    /// Checks if row in board is filled with blocks
+    /// </summary>
     public class RowAttachment : MonoBehaviour
     {
-        [SerializeField]
-        private List<GameObject> blocksInRow = new();
+        private List<GameObject> _blocksInRow = new();
 
+        // Holds reference to parent BoardParametersHolder object
         private BoardParametersHolder _parentBoard;
 
         private void Awake()
@@ -36,6 +39,7 @@ namespace Tetris.Gameplay.Board
         //     blocksInRow.Remove(other.gameObject);
         // }
 
+        // Checks colliders in row - if 10 blocks are present (filled row) sends data to lists
         private void CheckIfTenBlocksInRow()
         {
             Collider[] hitColliders = Physics.OverlapBox(gameObject.transform.position, new Vector3(9.5f, 0.5f, 1), Quaternion.identity);
@@ -43,14 +47,14 @@ namespace Tetris.Gameplay.Board
             int i = 0;
             while (i < hitColliders.Length)
             {
-                blocksInRow.Add(hitColliders[i].gameObject);
+                _blocksInRow.Add(hitColliders[i].gameObject);
                 i++;
             }
-            _parentBoard.AddBlocksToDestroy(blocksInRow);
+            _parentBoard.AddBlocksToDestroy(_blocksInRow);
             _parentBoard.AddRowsToDestroy(transform.position.y);
-            foreach (var t in blocksInRow.ToList())
+            foreach (var t in _blocksInRow.ToList())
             {
-                blocksInRow.Remove(t);
+                _blocksInRow.Remove(t);
             }
         }
     }

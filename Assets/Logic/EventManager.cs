@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace Tetris.Core
 {
+    /// <summary>
+    /// Event Manager Singleton - handles most events in project and lives in DontDestroyOnLoad
+    /// </summary>
     public class EventManager : MonoBehaviour
     {
         private static EventManager _instance;
@@ -21,6 +24,7 @@ namespace Tetris.Core
         
         public static Action gameStarted;
         
+        // Player 1 Actions
         public static Action<int> player1BrickSpawned;
         public static Action<GameObject> player1BrickInstantiated;
         public static Action<float> player1BrickMoved;
@@ -31,6 +35,7 @@ namespace Tetris.Core
         public static Action player1BricksCleared;
         public static Action player1EndTurn;
         
+        // Player 2 Actions
         public static Action<int> player2BrickSpawned;
         public static Action<GameObject> player2BrickInstantiated;
         public static Action<float> player2BrickMoved;
